@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Answer Evaluator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Sidebar - Input Pane -->
+        <div class="sidebar">
+            <div class="sidebar-content">
+                <h2>LLM Answer Evaluator</h2>
+                
+                <!-- API Key Input -->
+                <div class="form-group">
+                    <label for="apiKey" class="form-label">OpenAI API Key</label>
+                    <input 
+                        type="password" 
+                        id="apiKey" 
+                        class="form-control"
+                        placeholder="Enter your OpenAI API key"
+                        aria-label="OpenAI API Key"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                </div>
+
+                <!-- File Upload Area -->
+                <div class="form-group">
+                    <label class="form-label">Upload Data</label>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <p>Drag & drop CSV or JSON file here</p>
+                            <p class="upload-hint">or click to browse</p>
+                            <input type="file" id="fileInput" accept=".csv,.json" style="display: none;">
+                        </div>
+                    </div>
+                    <div id="fileInfo" class="file-info hidden"></div>
+                </div>
+
+                <!-- Ad-hoc Input -->
+                <div class="form-group">
+                    <label class="form-label">Or Add Single Pair</label>
+                    <textarea 
+                        id="promptInput" 
+                        class="form-control"
+                        placeholder="Enter prompt..."
+                        rows="3"
+                        aria-label="Prompt input"
+                    ></textarea>
+                    <textarea 
+                        id="responseInput" 
+                        class="form-control mt-8"
+                        placeholder="Enter response..."
+                        rows="3"
+                        aria-label="Response input"
+                    ></textarea>
+                    <textarea 
+                        id="contextInput" 
+                        class="form-control mt-8"
+                        placeholder="Enter context (optional)..."
+                        rows="2"
+                        aria-label="Context input"
+                    ></textarea>
+                    <button class="btn btn--secondary mt-8" id="addPairBtn">Add Pair</button>
+                </div>
+
+                <!-- Current Pairs Display -->
+                <div class="form-group" id="currentPairsSection">
+                    <label class="form-label">Current Pairs (<span id="pairCount">0</span>)</label>
+                    <div class="current-pairs-container" id="currentPairsContainer">
+                        <div class="empty-pairs-message">No pairs added yet</div>
+                    </div>
+                    <button class="btn btn--outline btn--sm mt-8" id="clearAllBtn" style="display: none;">Clear All</button>
+                </div>
+
+                <!-- Run Evaluation Button -->
+                <button class="btn btn--primary btn--full-width" id="runEvaluationBtn" disabled>
+                    Run Evaluation
+                </button>
+
+                <!-- Progress -->
+                <div id="progressContainer" class="progress-container hidden">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0 / 0 completed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Summary Chart -->
+            <div class="card mb-24">
+                <div class="card__header">
+                    <h3>Evaluation Summary</h3>
+                </div>
+                <div class="card__body">
+                    <div class="chart-container">
+                        <canvas id="summaryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-24">
+                <div class="card__body">
+                    <div class="filters-container">
+                        <div class="filter-group">
+                            <label class="form-label">Verdict Filter</label>
+                            <select id="verdictFilter" class="form-control">
+                                <option value="">All Verdicts</option>
+                                <option value="Accept">Accept</option>
+                                <option value="Needs Revision">Needs Revision</option>
+                                <option value="Reject">Reject</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="form-label">Min Score</label>
+                            <input type="range" id="minScoreFilter" class="form-control" min="0" max="10" value="0">
+                            <span id="minScoreValue">0</span>
+                        </div>
+                        <div class="filter-group">
+                            <label class="form-label">Search Prompt</label>
+                            <input type="text" id="searchFilter" class="form-control" placeholder="Search prompts...">
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn btn--secondary" id="clearFiltersBtn">Clear Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div class="card">
+                <div class="card__header">
+                    <div class="flex justify-between items-center">
+                        <h3>Results</h3>
+                        <div class="export-buttons">
+                            <button class="btn btn--secondary btn--sm" id="exportJsonBtn">Export JSON</button>
+                            <button class="btn btn--secondary btn--sm" id="exportCsvBtn">Export CSV</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card__body">
+                    <div class="table-container">
+                        <table class="results-table" id="resultsTable">
+                            <thead>
+                                <tr>
+                                    <th>Prompt</th>
+                                    <th>Verdict</th>
+                                    <th>Overall Score</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsTableBody">
+                                <tr class="empty-state">
+                                    <td colspan="4">No evaluations yet. Upload data or add pairs to get started.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
